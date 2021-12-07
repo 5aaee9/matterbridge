@@ -49,7 +49,7 @@ func (b *Btelegram) handleForwarded(rmsg *config.Message, message *tgbotapi.Mess
 	}
 
 	usernameForward := ""
-	if b.GetBool("UseUserName") {
+	if b.GetBool("UseDisplayName") {
 		usernameForward = getUsername(message.ForwardFrom)
 	}
 
@@ -73,7 +73,7 @@ func (b *Btelegram) handleQuoting(rmsg *config.Message, message *tgbotapi.Messag
 	if message.ReplyToMessage != nil {
 		usernameReply := ""
 		if message.ReplyToMessage.From != nil {
-			if b.GetBool("UseUserName") {
+			if b.GetBool("UseDisplayName") {
 				usernameReply = getUsername(message.ReplyToMessage.From)
 			}
 			if usernameReply == "" {
@@ -96,7 +96,7 @@ func (b *Btelegram) handleQuoting(rmsg *config.Message, message *tgbotapi.Messag
 func (b *Btelegram) handleUsername(rmsg *config.Message, message *tgbotapi.Message) {
 	if message.From != nil {
 		rmsg.UserID = strconv.Itoa(message.From.ID)
-		if b.GetBool("UseFirstName") {
+		if b.GetBool("UseDisplayName") {
 			rmsg.Username = getUsername(message.From)
 		}
 		if rmsg.Username == "" {
