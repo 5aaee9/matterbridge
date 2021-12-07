@@ -49,14 +49,15 @@ func (b *Btelegram) handleForwarded(rmsg *config.Message, message *tgbotapi.Mess
 	}
 
 	usernameForward := ""
-	if b.GetBool("UseFirstName") {
-		usernameForward = message.ForwardFrom.FirstName
+	if b.GetBool("UseUserName") {
+		usernameForward = getUsername(message.ForwardFrom)
 	}
 
 	if usernameForward == "" {
 		usernameForward = message.ForwardFrom.UserName
+
 		if usernameForward == "" {
-			usernameForward = message.ForwardFrom.FirstName
+			usernameForward = getUsername(message.ForwardFrom)
 		}
 	}
 
@@ -72,13 +73,13 @@ func (b *Btelegram) handleQuoting(rmsg *config.Message, message *tgbotapi.Messag
 	if message.ReplyToMessage != nil {
 		usernameReply := ""
 		if message.ReplyToMessage.From != nil {
-			if b.GetBool("UseFirstName") {
-				usernameReply = message.ReplyToMessage.From.FirstName
+			if b.GetBool("UseUserName") {
+				usernameReply = getUsername(message.ReplyToMessage.From)
 			}
 			if usernameReply == "" {
 				usernameReply = message.ReplyToMessage.From.UserName
 				if usernameReply == "" {
-					usernameReply = message.ReplyToMessage.From.FirstName
+					usernameReply = getUsername(message.ReplyToMessage.From)
 				}
 			}
 		}
@@ -96,12 +97,12 @@ func (b *Btelegram) handleUsername(rmsg *config.Message, message *tgbotapi.Messa
 	if message.From != nil {
 		rmsg.UserID = strconv.Itoa(message.From.ID)
 		if b.GetBool("UseFirstName") {
-			rmsg.Username = message.From.FirstName
+			rmsg.Username = getUsername(message.From)
 		}
 		if rmsg.Username == "" {
 			rmsg.Username = message.From.UserName
 			if rmsg.Username == "" {
-				rmsg.Username = message.From.FirstName
+				rmsg.Username = getUsername(message.From)
 			}
 		}
 		// only download avatars if we have a place to upload them (configured mediaserver)
