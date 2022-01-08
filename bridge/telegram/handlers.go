@@ -12,7 +12,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string {
+func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { // nolint:gocyclo
 	var parts []string
 	txt := message.Text
 	lastPos := 0
