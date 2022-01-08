@@ -4,3 +4,5 @@
 
 # Exclude configuration file
 matterbridge.toml
+
+/.idea
