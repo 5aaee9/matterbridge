@@ -12,18 +12,74 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
+func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string {
+	var parts []string
+	txt := message.Text
+	lastPos := 0
+
+	if message.Entities == nil || len(*message.Entities) == 0 {
+		return txt
+	}
+
+	for _, entity := range *(message.Entities) {
+		src := txt[lastPos:entity.Offset]
+		parts = append(parts, src)
+
+		if entity.IsPre() {
+			parts = append(parts, "`")
+		}
+
+		if entity.IsCode() {
+			parts = append(parts, "```\n")
+		}
+
+		if entity.IsUrl() {
+			parts = append(parts, "[")
+		}
+
+		if entity.IsBold() {
+			parts = append(parts, "**")
+		}
+
+		lastPos = entity.Offset + entity.Length
+		parts = append(parts, txt[entity.Offset:lastPos])
+
+		if entity.IsPre() {
+			parts = append(parts, "`")
+		}
+
+		if entity.IsCode() {
+			parts = append(parts, "\n```")
+		}
+
+		if entity.IsUrl() {
+			parts = append(parts, "]("+entity.URL+")")
+		}
+
+		if entity.IsBold() {
+			parts = append(parts, "**")
+		}
+	}
+
+	parts = append(parts, txt[lastPos:])
+
+	txt = strings.Join(parts, "")
+	return txt
+}
+
 func (b *Btelegram) handleUpdate(rmsg *config.Message, message, posted, edited *tgbotapi.Message) *tgbotapi.Message {
 	// handle channels
 	if posted != nil {
 		message = posted
-		rmsg.Text = message.Text
+		rmsg.Text = b.handleEntitiesMessage(message)
 	}
 
 	// edited channel message
 	if edited != nil && !b.GetBool("EditDisable") {
 		message = edited
-		rmsg.Text = rmsg.Text + message.Text + b.GetString("EditSuffix")
+		rmsg.Text = rmsg.Text + b.handleEntitiesMessage(message) + b.GetString("EditSuffix")
 	}
+
 	return message
 }
 
