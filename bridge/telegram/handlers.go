@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf16"
-	"exp/utf8string"
+	"golang.org/x/exp/utf8string"
 
 	"github.com/42wim/matterbridge/bridge/config"
 	"github.com/42wim/matterbridge/bridge/helper"
@@ -20,11 +20,11 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 	txt := utf8string.NewString(message.Text)
 	lastPos := 0
 
-	if message.Entities == nil || len(*message.Entities) == 0 {
-		return txt
+	if message.Entities == nil || len(message.Entities) == 0 {
+		return message.Text
 	}
 
-	for _, entity := range *(message.Entities) {
+	for _, entity := range message.Entities {
 		src := txt.Slice(lastPos, entity.Offset)
 		parts = append(parts, src)
 
@@ -36,7 +36,7 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 			parts = append(parts, "```\n")
 		}
 
-		if entity.IsUrl() {
+		if entity.IsURL() {
 			parts = append(parts, "[")
 		}
 
@@ -55,7 +55,7 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 			parts = append(parts, "\n```")
 		}
 
-		if entity.IsUrl() {
+		if entity.IsURL() {
 			parts = append(parts, "]("+entity.URL+")")
 		}
 
@@ -64,10 +64,9 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 		}
 	}
 
-	parts = append(parts, txt.Slice(lastPos, a.RuneCount()))
+	parts = append(parts, txt.Slice(lastPos, txt.RuneCount()))
 
-	txt = strings.Join(parts, "")
-	return txt
+	return strings.Join(parts, "")
 }
 
 func (b *Btelegram) handleUpdate(rmsg *config.Message, message, posted, edited *tgbotapi.Message) *tgbotapi.Message {
@@ -181,7 +180,7 @@ func (b *Btelegram) handleQuoting(rmsg *config.Message, message *tgbotapi.Messag
 // handleUsername handles the correct setting of the username
 func (b *Btelegram) handleUsername(rmsg *config.Message, message *tgbotapi.Message) {
 	if message.From != nil {
-		rmsg.UserID = strconv.Itoa(message.From.ID, 10)
+		rmsg.UserID = strconv.Itoa(int(message.From.ID))
 		if b.GetBool("UseDisplayName") {
 			rmsg.Username = getUsername(message.From)
 		}
