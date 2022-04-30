@@ -30,7 +30,7 @@ jobs:
       with:
           fetch-depth: 0
     - name: Test
-      run: go test ./... -mod=vendor
+      run: go test ./... -mod=mod
     - name: Build
       run: |
         mkdir -p output/{win,lin,arm,mac}
