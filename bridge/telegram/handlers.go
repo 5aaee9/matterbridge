@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf16"
+	"exp/utf8string"
 
 	"github.com/42wim/matterbridge/bridge/config"
 	"github.com/42wim/matterbridge/bridge/helper"
@@ -14,7 +15,7 @@ import (
 
 func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { // nolint:gocyclo
 	var parts []string
-	txt := message.Text
+	txt := utf8string.NewString(message.Text)
 	lastPos := 0
 
 	if message.Entities == nil || len(*message.Entities) == 0 {
@@ -22,7 +23,7 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 	}
 
 	for _, entity := range *(message.Entities) {
-		src := txt[lastPos:entity.Offset]
+		src := txt.Slice(lastPos, entity.Offset)
 		parts = append(parts, src)
 
 		if entity.IsPre() {
@@ -42,7 +43,7 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 		}
 
 		lastPos = entity.Offset + entity.Length
-		parts = append(parts, txt[entity.Offset:lastPos])
+		parts = append(parts, txt.Slice(entity.Offset, lastPos))
 
 		if entity.IsPre() {
 			parts = append(parts, "`")
@@ -61,7 +62,7 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 		}
 	}
 
-	parts = append(parts, txt[lastPos:])
+	parts = append(parts, txt.Slice(lastPos, a.RuneCount()))
 
 	txt = strings.Join(parts, "")
 	return txt
