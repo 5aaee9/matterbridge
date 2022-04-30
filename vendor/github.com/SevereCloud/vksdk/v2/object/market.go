@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+
+	"github.com/vmihailenco/msgpack/v5"
+	"github.com/vmihailenco/msgpack/v5/msgpcode"
 )
 
 // Information whether the MarketMarketItem is available.
@@ -28,6 +31,8 @@ type MarketMarketAlbum struct {
 	Photo       PhotosPhoto `json:"photo"`
 	Title       string      `json:"title"`        // Market album title
 	UpdatedTime int         `json:"updated_time"` // Date when album has been updated last time in Unixtime
+	IsMain      BaseBoolInt `json:"is_main"`
+	IsHidden    BaseBoolInt `json:"is_hidden"`
 }
 
 // ToAttachment return attachment format.
@@ -98,6 +103,36 @@ func (market *MarketMarketItem) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// DecodeMsgpack MarketMarketItem.
+//
+// BUG(VK): https://github.com/SevereCloud/vksdk/issues/147
+func (market *MarketMarketItem) DecodeMsgpack(dec *msgpack.Decoder) error {
+	data, err := dec.DecodeRaw()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(data, []byte{msgpcode.False}) {
+		return nil
+	}
+
+	type renamedMarketMarketItem MarketMarketItem
+
+	var r renamedMarketMarketItem
+
+	d := msgpack.NewDecoder(bytes.NewReader(data))
+	d.SetCustomStructTag("json")
+
+	err = d.Decode(&r)
+	if err != nil {
+		return err
+	}
+
+	*market = MarketMarketItem(r)
+
+	return nil
+}
+
 // MarketMarketItemProperty struct.
 type MarketMarketItemProperty struct {
 	VariantID    int    `json:"variant_id"`
@@ -140,6 +175,36 @@ func (m *MarketPrice) UnmarshalJSON(data []byte) error {
 	var r renamedMarketPrice
 
 	err := json.Unmarshal(data, &r)
+	if err != nil {
+		return err
+	}
+
+	*m = MarketPrice(r)
+
+	return nil
+}
+
+// DecodeMsgpack MarketPrice.
+//
+// BUG(VK): unavailable product, in fave.get return [].
+func (m *MarketPrice) DecodeMsgpack(dec *msgpack.Decoder) error {
+	data, err := dec.DecodeRaw()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(data, []byte{msgpcode.FixedArrayLow}) {
+		return nil
+	}
+
+	type renamedMarketPrice MarketPrice
+
+	var r renamedMarketPrice
+
+	d := msgpack.NewDecoder(bytes.NewReader(data))
+	d.SetCustomStructTag("json")
+
+	err = d.Decode(&r)
 	if err != nil {
 		return err
 	}

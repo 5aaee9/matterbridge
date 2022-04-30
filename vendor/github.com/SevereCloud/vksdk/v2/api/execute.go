@@ -1,6 +1,11 @@
 package api
 
-import "encoding/json"
+import (
+	"bytes"
+	"encoding/json"
+
+	"github.com/vmihailenco/msgpack/v5"
+)
 
 // ExecuteWithArgs a universal method for calling a sequence of other methods
 // while saving and filtering interim results.
@@ -22,10 +27,23 @@ func (vk *VK) ExecuteWithArgs(code string, params Params, obj interface{}) error
 	}
 
 	resp, err := vk.Handler("execute", params, reqParams)
+	if err != nil {
+		return err
+	}
 
-	jsonErr := json.Unmarshal(resp.Response, &obj)
-	if jsonErr != nil {
-		return jsonErr
+	var decoderErr error
+
+	if vk.msgpack {
+		dec := msgpack.NewDecoder(bytes.NewReader(resp.Response))
+		dec.SetCustomStructTag("json")
+
+		decoderErr = dec.Decode(&obj)
+	} else {
+		decoderErr = json.Unmarshal(resp.Response, &obj)
+	}
+
+	if decoderErr != nil {
+		return decoderErr
 	}
 
 	if resp.ExecuteErrors != nil {

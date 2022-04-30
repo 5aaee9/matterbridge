@@ -25,6 +25,11 @@ func (p *Parser) tableRow(data []byte, columns []ast.CellAlignFlags, header bool
 
 		cellStart := i
 
+		// If we are in a codespan we should discount any | we see, check for that here and skip ahead.
+		if isCode, _ := codeSpan(p, data[i:], 0); isCode > 0 {
+			i += isCode - 1
+		}
+
 		for i < n && (data[i] != '|' || isBackslashEscaped(data, i)) && data[i] != '\n' {
 			i++
 		}
@@ -84,6 +89,11 @@ func (p *Parser) tableFooter(data []byte) bool {
 	n := len(data)
 	i := skipCharN(data, 0, ' ', 3)
 	for ; i < n && data[i] != '\n'; i++ {
+		// If we are in a codespan we should discount any | we see, check for that here and skip ahead.
+		if isCode, _ := codeSpan(p, data[i:], 0); isCode > 0 {
+			i += isCode - 1
+		}
+
 		if data[i] == '|' && !isBackslashEscaped(data, i) {
 			colCount++
 			continue
@@ -105,12 +115,17 @@ func (p *Parser) tableFooter(data []byte) bool {
 }
 
 // tableHeaders parses the header. If recognized it will also add a table.
-func (p *Parser) tableHeader(data []byte) (size int, columns []ast.CellAlignFlags, table ast.Node) {
+func (p *Parser) tableHeader(data []byte, doRender bool) (size int, columns []ast.CellAlignFlags, table ast.Node) {
 	i := 0
 	colCount := 1
 	headerIsUnderline := true
 	headerIsWithEmptyFields := true
 	for i = 0; i < len(data) && data[i] != '\n'; i++ {
+		// If we are in a codespan we should discount any | we see, check for that here and skip ahead.
+		if isCode, _ := codeSpan(p, data[i:], 0); isCode > 0 {
+			i += isCode - 1
+		}
+
 		if data[i] == '|' && !isBackslashEscaped(data, i) {
 			colCount++
 		}
@@ -236,11 +251,13 @@ func (p *Parser) tableHeader(data []byte) (size int, columns []ast.CellAlignFlag
 		return
 	}
 
-	table = &ast.Table{}
-	p.addBlock(table)
-	if header != nil {
-		p.addBlock(&ast.TableHeader{})
-		p.tableRow(header, columns, true)
+	if doRender {
+		table = &ast.Table{}
+		p.addBlock(table)
+		if header != nil {
+			p.addBlock(&ast.TableHeader{})
+			p.tableRow(header, columns, true)
+		}
 	}
 	size = skipCharN(data, i, '\n', 1)
 	return
@@ -255,7 +272,7 @@ Bob   | 31  | 555-1234
 Alice | 27  | 555-4321
 */
 func (p *Parser) table(data []byte) int {
-	i, columns, table := p.tableHeader(data)
+	i, columns, table := p.tableHeader(data, true)
 	if i == 0 {
 		return 0
 	}
@@ -284,7 +301,7 @@ func (p *Parser) table(data []byte) int {
 
 		p.tableRow(data[rowStart:i], columns, false)
 	}
-	if captionContent, id, consumed := p.caption(data[i:], []byte("Table: ")); consumed > 0 {
+	if captionContent, id, consumed := p.caption(data[i:], []byte(captionTable)); consumed > 0 {
 		caption := &ast.Caption{}
 		p.Inline(caption, captionContent)
 

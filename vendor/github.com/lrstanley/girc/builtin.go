@@ -108,7 +108,10 @@ func nickCollisionHandler(c *Client, e Event) {
 		return
 	}
 
-	c.Cmd.Nick(c.Config.HandleNickCollide(c.GetNick()))
+	newNick := c.Config.HandleNickCollide(c.GetNick())
+	if newNick != "" {
+		c.Cmd.Nick(newNick)
+	}
 }
 
 // handlePING helps respond to ping requests from the server.
@@ -424,7 +427,7 @@ func handleMOTD(c *Client, e Event) {
 	}
 
 	// Otherwise, assume we're getting sent the MOTD line-by-line.
-	if len(c.state.motd) != 0 {
+	if c.state.motd != "" {
 		c.state.motd += "\n"
 	}
 	c.state.motd += e.Last()
@@ -448,7 +451,7 @@ func handleNAMES(c *Client, e Event) {
 
 	var modes, nick string
 	var ok bool
-	s := &Source{}
+	var s *Source
 
 	c.state.Lock()
 	for i := 0; i < len(parts); i++ {

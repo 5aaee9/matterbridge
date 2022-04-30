@@ -20,6 +20,7 @@ func (vk *VK) MarketAdd(params Params) (response MarketAddResponse, err error) {
 // MarketAddAlbumResponse struct.
 type MarketAddAlbumResponse struct {
 	MarketAlbumID int `json:"market_album_id"` // Album ID
+	AlbumsCount   int `json:"albums_count"`
 }
 
 // MarketAddAlbum creates new collection of items.
@@ -316,5 +317,21 @@ type MarketSearchResponse struct {
 // https://vk.com/dev/market.search
 func (vk *VK) MarketSearch(params Params) (response MarketSearchResponse, err error) {
 	err = vk.RequestUnmarshal("market.search", &response, params)
+	return
+}
+
+// MarketSearchItemsResponse struct.
+type MarketSearchItemsResponse struct {
+	Count    int                       `json:"count"`
+	ViewType int                       `json:"view_type"`
+	Items    []object.MarketMarketItem `json:"items"`
+	Groups   []object.GroupsGroup      `json:"groups,omitempty"`
+}
+
+// MarketSearchItems method.
+//
+// https://vk.com/dev/market.searchItems
+func (vk *VK) MarketSearchItems(params Params) (response MarketSearchItemsResponse, err error) {
+	err = vk.RequestUnmarshal("market.searchItems", &response, params)
 	return
 }

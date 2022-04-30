@@ -10,10 +10,14 @@ import (
 	"github.com/42wim/matterbridge/bridge/config"
 	"github.com/42wim/matterbridge/bridge/discord/transmitter"
 	"github.com/42wim/matterbridge/bridge/helper"
-	"github.com/matterbridge/discordgo"
+	"github.com/bwmarrin/discordgo"
+	lru "github.com/hashicorp/golang-lru"
 )
 
-const MessageLength = 1950
+const (
+	MessageLength = 1950
+	cFileUpload   = "file_upload"
+)
 
 type Bdiscord struct {
 	*bridge.Config
@@ -35,10 +39,20 @@ type Bdiscord struct {
 	// Webhook specific logic
 	useAutoWebhooks bool
 	transmitter     *transmitter.Transmitter
+	cache           *lru.Cache
 }
 
 func New(cfg *bridge.Config) bridge.Bridger {
-	b := &Bdiscord{Config: cfg}
+	newCache, err := lru.New(5000)
+	if err != nil {
+		cfg.Log.Fatalf("Could not create LRU cache: %v", err)
+	}
+
+	b := &Bdiscord{
+		Config: cfg,
+		cache:  newCache,
+	}
+
 	b.userMemberMap = make(map[string]*discordgo.Member)
 	b.nickMemberMap = make(map[string]*discordgo.Member)
 	b.channelInfoMap = make(map[string]*config.ChannelInfo)
@@ -75,6 +89,9 @@ func (b *Bdiscord) Connect() error {
 	b.c.AddHandler(b.messageDeleteBulk)
 	b.c.AddHandler(b.memberAdd)
 	b.c.AddHandler(b.memberRemove)
+	if b.GetInt("debuglevel") == 1 {
+		b.c.AddHandler(b.messageEvent)
+	}
 	// Add privileged intent for guild member tracking. This is needed to track nicks
 	// for display names and @mention translation
 	b.c.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged |
@@ -153,7 +170,7 @@ func (b *Bdiscord) Connect() error {
 		return fmt.Errorf("use of removed WebhookURL setting")
 	}
 
-	if b.GetInt("debuglevel") > 0 {
+	if b.GetInt("debuglevel") == 2 {
 		b.Log.Debug("enabling even more discord debug")
 		b.c.Debug = true
 	}
@@ -255,7 +272,8 @@ func (b *Bdiscord) Send(msg config.Message) (string, error) {
 	// Handle prefix hint for unthreaded messages.
 	if msg.ParentNotFound() {
 		msg.ParentID = ""
-		msg.Text = fmt.Sprintf("[thread]: %s", msg.Text)
+		msg.Text = strings.TrimPrefix(msg.Text, "\n")
+		msg.Text = fmt.Sprintf("> %s %s", msg.Username, msg.Text)
 	}
 
 	// Use webhook to send the message
@@ -278,6 +296,21 @@ func (b *Bdiscord) handleEventBotUser(msg *config.Message, channelID string) (st
 		}
 		err := b.c.ChannelMessageDelete(channelID, msg.ID)
 		return "", err
+	}
+
+	// Delete a file
+	if msg.Event == config.EventFileDelete {
+		if msg.ID == "" {
+			return "", nil
+		}
+
+		if fi, ok := b.cache.Get(cFileUpload + msg.ID); ok {
+			err := b.c.ChannelMessageDelete(channelID, fi.(string)) // nolint:forcetypeassert
+			b.cache.Remove(cFileUpload + msg.ID)
+			return "", err
+		}
+
+		return "", fmt.Errorf("file %s not found", msg.ID)
 	}
 
 	// Upload a file if it exists
@@ -327,7 +360,6 @@ func (b *Bdiscord) handleEventBotUser(msg *config.Message, channelID string) (st
 
 // handleUploadFile handles native upload of files
 func (b *Bdiscord) handleUploadFile(msg *config.Message, channelID string) (string, error) {
-	var err error
 	for _, f := range msg.Extra["file"] {
 		fi := f.(config.FileInfo)
 		file := discordgo.File{
@@ -340,10 +372,15 @@ func (b *Bdiscord) handleUploadFile(msg *config.Message, channelID string) (stri
 			Files:           []*discordgo.File{&file},
 			AllowedMentions: b.getAllowedMentions(),
 		}
-		_, err = b.c.ChannelMessageSendComplex(channelID, &m)
+		res, err := b.c.ChannelMessageSendComplex(channelID, &m)
 		if err != nil {
 			return "", fmt.Errorf("file upload failed: %s", err)
 		}
+
+		// link file_upload_nativeID (file ID from the original bridge) to our upload id
+		// so that we can remove this later when it eg needs to be deleted
+		b.cache.Add(cFileUpload+fi.NativeID, res.ID)
 	}
+
 	return "", nil
 }

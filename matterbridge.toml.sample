@@ -24,6 +24,13 @@ Password=""
 #OPTIONAL (default false)
 UseTLS=false
 
+#Use client certificate - see CertFP https://libera.chat/guides/certfp.html
+#Specify filename which contains private key and cert
+#OPTIONAL (default "")
+#
+#TLSClientCertificate="cert.pem"
+TLSClientCertificate=""
+
 #Enable SASL (PLAIN) authentication. (libera requires this from eg AWS hosts)
 #It uses NickServNick and NickServPassword as login and password
 #OPTIONAL (default false)
@@ -400,6 +407,10 @@ SkipTLSVerify=true
 
 ## RELOADABLE SETTINGS
 ## Settings below can be reloaded by editing the file
+
+# UseUserName shows the username instead of the server nickname
+# OPTIONAL (default false)
+UseUserName=false
 
 #how to format the list of IRC nicks when displayed in mattermost.
 #Possible options are "table" and "plain"
@@ -851,6 +862,10 @@ ShowUserTyping=false
 #Default "<clipped message>"
 MessageClipped="<clipped message>"
 
+#If enabled use the slack "Real Name" as username.
+#OPTIONAL (default false)
+UseFullName=false
+
 ###################################################################
 #discord section
 ###################################################################
@@ -1025,6 +1040,12 @@ DisableWebPagePreview=false
 #OPTIONAL (default false)
 UseFirstName=false
 
+#If enabled use the "Full Name" as username. If this is empty use the Username
+#If disabled use the "Username" as username. If this is empty use the First Name and Last Name as Full Name
+#If all names are empty, username will be "unknown"
+#OPTIONAL (default false)
+UseFullName=false
+
 #WARNING! If enabled this will relay GIF/stickers/documents and other attachments as URLs
 #Those URLs will contain your bot-token. This may not be what you want.
 #For now there is no secure way to relay GIF/stickers/documents without seeing your token.
@@ -1129,6 +1150,12 @@ StripNick=false
 #Only works hiding/show topic changes from slack bridge for now
 #OPTIONAL (default false)
 ShowTopicChange=false
+
+#Opportunistically preserve threaded replies between Telegram groups.
+#This only works if the parent message is still in the cache.
+#Cache is flushed between restarts.
+#OPTIONAL (default false)
+PreserveThreading=false
 
 ###################################################################
 #rocketchat section
@@ -1539,10 +1566,6 @@ MessageClipped="<clipped message>"
 #See https://vk.com/dev/bots_docs
 Token="Yourtokenhere"
 
-#Group ID
-#For example in URL https://vk.com/public168963511 group ID is 168963511
-GroupID=123456789
-
 ###################################################################
 # WhatsApp
 ###################################################################
@@ -1659,6 +1682,18 @@ StripNick=false
 #Only works hiding/show topic changes from slack bridge for now
 #OPTIONAL (default false)
 ShowTopicChange=false
+
+###################################################################
+# Harmony
+###################################################################
+
+[harmony.chat_harmonyapp_io]
+Homeserver = "https://chat.harmonyapp.io:2289"
+Token = "your token goes here"
+UserID = "user id of the bot account"
+Community = "community id that channels will be located in"
+UseUserName = true
+RemoteNickFormat = "{NICK}"
 
 ###################################################################
 #API
@@ -1878,7 +1913,8 @@ enable=true
     # -------------------------------------------------------------------------------------------------------------------------------------
     #    irc     |      channel       |            #general           | The # symbol is required and should be lowercase!
     # -------------------------------------------------------------------------------------------------------------------------------------
-    # mattermost |      channel       |            general            | This is the channel name as seen in the URL, not the display name
+    #            |      channel       |            general            | This is the channel name as seen in the URL, not the display name
+    # mattermost |    channel id      | ID:oc4wifyuojgw5f3nsuweesmz8w | This is the channel ID (only use if you know what you're doing)
     # -------------------------------------------------------------------------------------------------------------------------------------
     #   matrix   | #channel:server    |    #yourchannel:matrix.org    | Encrypted rooms are not supported in matrix
     # -------------------------------------------------------------------------------------------------------------------------------------
@@ -1904,7 +1940,7 @@ enable=true
     # -------------------------------------------------------------------------------------------------------------------------------------
     #    xmpp    |      channel       |            general            | The room name
     # -------------------------------------------------------------------------------------------------------------------------------------
-    #   zulip    | stream/topic:topic |     general/off-topic:food    | Do not use the # when specifying a topic
+    #   zulip    | stream/topic:topic |      general/topic:food       | Do not use the # when specifying a topic
     # -------------------------------------------------------------------------------------------------------------------------------------
 
     #
@@ -1952,6 +1988,10 @@ enable=true
     [[gateway.inout]]
     account="zulip.streamchat"
     channel="general/topic:mytopic"
+
+    [[gateway.inout]]
+    account="harmony.chat_harmonyapp_io"
+    channel="channel id goes here"
 
     #API example
     #[[gateway.inout]]

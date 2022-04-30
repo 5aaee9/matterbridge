@@ -6,3 +6,5 @@
 matterbridge.toml
 
 /.idea
+# Exclude IDE Files
+.vscode

@@ -2,7 +2,8 @@ package bdiscord
 
 import (
 	"github.com/42wim/matterbridge/bridge/config"
-	"github.com/matterbridge/discordgo"
+	"github.com/bwmarrin/discordgo"
+	"github.com/davecgh/go-spew/spew"
 )
 
 func (b *Bdiscord) messageDelete(s *discordgo.Session, m *discordgo.MessageDelete) { //nolint:unparam
@@ -31,6 +32,10 @@ func (b *Bdiscord) messageDeleteBulk(s *discordgo.Session, m *discordgo.MessageD
 	}
 }
 
+func (b *Bdiscord) messageEvent(s *discordgo.Session, m *discordgo.Event) {
+	b.Log.Debug(spew.Sdump(m.Struct))
+}
+
 func (b *Bdiscord) messageTyping(s *discordgo.Session, m *discordgo.TypingStart) {
 	if !b.GetBool("ShowUserTyping") {
 		return
@@ -51,7 +56,7 @@ func (b *Bdiscord) messageUpdate(s *discordgo.Session, m *discordgo.MessageUpdat
 		return
 	}
 	// only when message is actually edited
-	if m.Message.EditedTimestamp != "" {
+	if m.Message.EditedTimestamp != nil {
 		b.Log.Debugf("Sending edit message")
 		m.Content += b.GetString("EditSuffix")
 		msg := &discordgo.MessageCreate{
@@ -82,8 +87,9 @@ func (b *Bdiscord) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 
 	rmsg := config.Message{Account: b.Account, Avatar: "https://cdn.discordapp.com/avatars/" + m.Author.ID + "/" + m.Author.Avatar + ".jpg", UserID: m.Author.ID, ID: m.ID}
 
+	b.Log.Debugf("== Receiving event %#v", m.Message)
+
 	if m.Content != "" {
-		b.Log.Debugf("== Receiving event %#v", m.Message)
 		m.Message.Content = b.replaceChannelMentions(m.Message.Content)
 		rmsg.Text, err = m.ContentWithMoreMentionsReplaced(b.c)
 		if err != nil {

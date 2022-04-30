@@ -5,7 +5,7 @@ import (
 
 	"github.com/42wim/matterbridge/bridge/config"
 	"github.com/42wim/matterbridge/bridge/helper"
-	"github.com/matterbridge/discordgo"
+	"github.com/bwmarrin/discordgo"
 )
 
 // shouldMessageUseWebhooks checks if have a channel specific webhook, if we're not using auto webhooks
@@ -82,16 +82,14 @@ func (b *Bdiscord) webhookSend(msg *config.Message, channelID string) (*discordg
 				ContentType: "",
 				Reader:      bytes.NewReader(*fi.Data),
 			}
-			content := ""
-			if msg.Text == "" {
-				content = fi.Comment
-			}
+			content := fi.Comment
+
 			_, e2 := b.transmitter.Send(
 				channelID,
 				&discordgo.WebhookParams{
 					Username:        msg.Username,
 					AvatarURL:       msg.Avatar,
-					File:            &file,
+					Files:           []*discordgo.File{&file},
 					Content:         content,
 					AllowedMentions: b.getAllowedMentions(),
 				},
