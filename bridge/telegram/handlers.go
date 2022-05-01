@@ -56,7 +56,11 @@ func (b *Btelegram) handleEntitiesMessage(message *tgbotapi.Message) string { //
 		}
 
 		if entity.IsURL() {
-			parts = append(parts, "]("+entity.URL+")")
+			url := entity.URL
+			if len(entity.URL) == 0 {
+				url = txt.Slice(entity.Offset, lastPos)
+			}
+			parts = append(parts, "]("+url+")")
 		}
 
 		if entity.IsBold() {
