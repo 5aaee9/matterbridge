@@ -83,12 +83,12 @@ func (b *Bdiscord) Connect() error {
 	b.Log.Info("Connection succeeded")
 	b.c.AddHandler(b.messageCreate)
 	b.c.AddHandler(b.messageTyping)
-	b.c.AddHandler(b.memberUpdate)
 	b.c.AddHandler(b.messageUpdate)
 	b.c.AddHandler(b.messageDelete)
 	b.c.AddHandler(b.messageDeleteBulk)
 	b.c.AddHandler(b.memberAdd)
 	b.c.AddHandler(b.memberRemove)
+	b.c.AddHandler(b.memberUpdate)
 	if b.GetInt("debuglevel") == 1 {
 		b.c.AddHandler(b.messageEvent)
 	}
@@ -272,8 +272,6 @@ func (b *Bdiscord) Send(msg config.Message) (string, error) {
 	// Handle prefix hint for unthreaded messages.
 	if msg.ParentNotFound() {
 		msg.ParentID = ""
-		msg.Text = strings.TrimPrefix(msg.Text, "\n")
-		msg.Text = fmt.Sprintf("> %s %s", msg.Username, msg.Text)
 	}
 
 	// Use webhook to send the message
